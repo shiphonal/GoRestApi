@@ -3,6 +3,7 @@ package main
 import (
 	"GoServise/internal/config"
 	"GoServise/internal/http-server/handlers/redirect"
+	"GoServise/internal/http-server/handlers/refactor"
 	"GoServise/internal/http-server/handlers/remove"
 	"GoServise/internal/http-server/handlers/save"
 	mwLogger "GoServise/internal/http-server/middleware"
@@ -25,12 +26,20 @@ func main() {
 	cfg := config.MustLoad()
 	log := setupLogger(cfg.Env)
 
-	storage, err := sqlite.New(cfg.StoragePath)
+	/*ssoClient, err := ssogrpc.New(context.Background(), log,
+		cfg.Client.SSO.Address, cfg.Client.SSO.Timeout, cfg.Client.SSO.RetriesCount)
 	if err != nil {
 		log.Error("error creating storage", logger.Err(err))
 		os.Exit(1)
 	}
 
+	_ = ssoClient*/
+
+	storage, err := sqlite.New(cfg.StoragePath)
+	if err != nil {
+		log.Error("error creating storage", logger.Err(err))
+		os.Exit(1)
+	}
 	router := chi.NewRouter()
 	router.Use(middleware.RequestID)
 	router.Use(mwLogger.NewLogger(log)) // router.Use(middleware.Logger)
@@ -44,6 +53,7 @@ func main() {
 		}))
 		r.Post("/", save.New(log, storage))
 		r.Delete("/{alias}", remove.New(log, storage))
+		r.Patch("/", refactor.New(log, storage))
 	})
 	router.Get("/{alias}", redirect.New(log, storage))
 

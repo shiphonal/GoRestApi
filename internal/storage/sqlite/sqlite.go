@@ -128,3 +128,30 @@ func (s *Storage) DeleteURL(alias string) error {
 	}
 	return nil
 }
+
+func (s *Storage) PatchURL(oldAlias string, newAlias string) (bool, error) {
+	const op = "storage.sqlite.PatchURL"
+
+	stmt, err := s.db.Prepare("UPDATE url SET alias = ? WHERE alias = ?")
+	if err != nil {
+		return false, fmt.Errorf("%s : %w", op, err)
+	}
+	defer func(stmt *sql.Stmt) {
+		err := stmt.Close()
+		if err != nil {
+		}
+	}(stmt)
+
+	res, err := stmt.Exec(newAlias, oldAlias)
+	if err != nil {
+		return false, fmt.Errorf("%s : %w", op, err)
+	}
+	affected, err := res.RowsAffected()
+	if err != nil {
+		return false, fmt.Errorf("%s : %w", op, err)
+	}
+	if affected == 0 {
+		return false, fmt.Errorf("%s : %s", op, "patch the same alias")
+	}
+	return true, nil
+}
